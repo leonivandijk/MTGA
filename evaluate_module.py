@@ -40,10 +40,13 @@ def module_eigengene(x):
     :param x: a module, i.e. a group of genes, in the HD network
     :return: the first principal component of the expression matrix of the corresponding module
     """
-    # TODO: compare ME to ME of R code
-    module_expression = EXPRMAT_HD[:, x.astype(bool).squeeze()]
-    eigenvalues, eigenvectors = np.linalg.eig(module_expression)
-    return eigenvectors[:, np.argmax(eigenvalues)]
+    mod_expr = EXPRMAT_HD[:, x.astype(bool).squeeze()]
+    scaled_mod_expr = ((mod_expr - np.mean(mod_expr, axis=0))/np.std(mod_expr, axis=0)).T
+
+    u, d, v = np.linalg.svd(scaled_mod_expr)
+    v = v[0:1, :]
+    pc = v[0].tolist()
+    return pc
 
 
 def fitness(x):
