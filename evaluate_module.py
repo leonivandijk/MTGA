@@ -12,6 +12,8 @@ EXPRMAT_HD = pd.read_csv("./data/expr_hd.csv", delimiter=';')
 EXPRMAT_HD_geneMap = np.array(EXPRMAT_HD.columns)
 EXPRMAT_HD = np.array(EXPRMAT_HD)
 
+start_module = np.loadtxt("./data/lightcyan1.csv", delimiter=';', usecols=1, skiprows=1)
+
 # module parameters
 min_size = 30
 min_gene_overlap = .5
@@ -22,7 +24,7 @@ def is_valid(x):
     method that checks a module for module requirements:
     1. the module should be formatted as a binary vector with one element for every gene in the co-expression matrix
     2. the minimal size of the module is 30
-    3. the minimal 1-1 gene overlap with the reference module is 0.5
+    3. the minimal 1-1 gene overlap ratio with respect to the reference module is 0.5
     4. the minimal functional overlap with the reference module is 0.75
     :param x: a module, i.e. a group of genes, in the HD network
     :return: "True" if the module meets all requirements, "False" otherwise.
@@ -31,7 +33,10 @@ def is_valid(x):
         return False
     if sum(x) < min_size:
         return False
-    # TODO: add method body for requirements 3 and 4
+    if 1 - (sum(start_module) - sum(x[start_module.astype(bool)]))/sum(start_module) < min_gene_overlap:
+        return False
+    # TODO is_valid(x): add method body for requirement 4 (dev-stage 2)
+    return True
 
 
 def module_eigengene(x):
@@ -59,14 +64,14 @@ def fitness(x):
         return 0
     me = module_eigengene(x)
     result = np.corrcoef(me, PHENO_HD)[0, 1]
-    # TODO: add more statistics into the fitness formula
+    # TODO fitness(x): add more statistics into the fitness formula
     return result
 
 
 problem.wrap_integer_problem(fitness, 'module_fitness', optimization_type=OptimizationType.MAX)
 
 # Call get_problem to instantiate a version of this problem
-f = get_problem('module_fitness', instance=0, dimension=26, problem_type="Integer")
+f = get_problem('module_fitness', instance=0, dimension=20872, problem_type="Integer")
 logger = logger.Analyzer(
     root=os.getcwd(),
     # Store data in the current working directory
