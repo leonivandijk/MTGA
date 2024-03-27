@@ -1,18 +1,20 @@
 import numpy as np
 import pandas as pd
 import os
-from ioh import problem, OptimizationType, get_problem, logger
+from ioh import problem, OptimizationType, get_problem, logger, ProblemClass
 
-# EXPRMAT_AD = pd.read_csv("./data/expr_ad.csv", delimiter=';')
+path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
+
+# EXPRMAT_AD = pd.read_csv(path + "/data/expr_ad.csv", delimiter=';')
 # EXPRMAT_AD_geneMap = np.array(EXPRMAT_AD.columns)
 # EXPRMAT_AD = np.array(EXPRMAT_AD)
 
-PHENO_HD = np.loadtxt("./data/pheno_hd.csv", delimiter=';', usecols=1, skiprows=1)
-EXPRMAT_HD = pd.read_csv("./data/expr_hd.csv", delimiter=';')
+PHENO_HD = np.loadtxt(path + "/data/pheno_hd.csv", delimiter=';', usecols=1, skiprows=1)
+EXPRMAT_HD = pd.read_csv(path + "/data/expr_hd.csv", delimiter=';')
 EXPRMAT_HD_geneMap = np.array(EXPRMAT_HD.columns)
 EXPRMAT_HD = np.array(EXPRMAT_HD)
 
-start_module = np.loadtxt("./data/lightcyan1.csv", delimiter=';', usecols=1, skiprows=1)
+start_module = np.loadtxt(path + "/data/lightcyan1.csv", delimiter=';', usecols=1, skiprows=1)
 
 # module parameters
 min_size = 30
@@ -68,17 +70,24 @@ def fitness(x):
     return result
 
 
-problem.wrap_integer_problem(fitness, 'module_fitness', optimization_type=OptimizationType.MAX)
+problem.wrap_integer_problem(fitness,
+                             name='module_fitness',
+                             optimization_type=OptimizationType.MAX,
+                             lb=0)
 
 # Call get_problem to instantiate a version of this problem
-f = get_problem('module_fitness', instance=0, dimension=20872, problem_type="Integer")
+f = get_problem('module_fitness',
+                problem_class=ProblemClass.INTEGER,
+                instance=0,
+                dimension=20872)
+
 logger = logger.Analyzer(
     root=os.getcwd(),
     # Store data in the current working directory
     folder_name="results",
     algorithm_name="GA-transfer-learning",
     # meta-data for the algorithm used to generate these results.
-    algorithm_info="type-current-test-settings-here",
+    algorithm_info="meaningless-tests-for-code-testing",
     store_positions=True  # store x-variables in the logged files
 )
 f.attach_logger(logger)
