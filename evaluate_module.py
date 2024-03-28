@@ -66,6 +66,7 @@ def fitness(x):
         return 0
     me = module_eigengene(x)
     result = np.corrcoef(me, PHENO_HD)[0, 1]
+    result = abs(result)
     # TODO fitness(x): add more statistics into the fitness formula
     return result
 
