@@ -5,16 +5,16 @@ from ioh import problem, OptimizationType, get_problem, logger, ProblemClass
 
 path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
 
-# EXPRMAT_AD = pd.read_csv(path + "/data/expr_ad.csv", delimiter=';')
-# EXPRMAT_AD_geneMap = np.array(EXPRMAT_AD.columns)
-# EXPRMAT_AD = np.array(EXPRMAT_AD)
-
-PHENO_HD = np.loadtxt(path + "/data/pheno_hd.csv", delimiter=';', usecols=1, skiprows=1)
-EXPRMAT_HD = pd.read_csv(path + "/data/expr_hd.csv", delimiter=';')
+PHENO_HD = np.loadtxt(path + "/data/PHENO_HD.csv", delimiter=';', usecols=1, skiprows=1)
+EXPRMAT_HD = pd.read_csv(path + "/data/expr_hd_turquoise.csv", delimiter=';')
 EXPRMAT_HD_geneMap = np.array(EXPRMAT_HD.columns)
 EXPRMAT_HD = np.array(EXPRMAT_HD)
+AD_MODULE = np.array(pd.read_csv(path + "/data/AD_MODULE.csv", delimiter=';').x)
 
-start_module = np.loadtxt(path + "/data/lightcyan1.csv", delimiter=';', usecols=1, skiprows=1)
+start_module = np.zeros(shape=EXPRMAT_HD_geneMap.shape, dtype=int)
+for i in AD_MODULE:
+    index = np.where(EXPRMAT_HD_geneMap == str(i))
+    start_module[index] = 1
 
 # module parameters
 min_size = 30
@@ -80,7 +80,7 @@ problem.wrap_integer_problem(fitness,
 f = get_problem('module_fitness',
                 problem_class=ProblemClass.INTEGER,
                 instance=0,
-                dimension=20872)
+                dimension=4621)
 
 logger = logger.Analyzer(
     root=os.getcwd(),

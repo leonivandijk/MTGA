@@ -10,15 +10,14 @@ path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
 
 # load in gene/wgcna options
 #TOM_HD = pd.read_csv("./data/tom_hd.csv", delimiter=';')
-# TODO: align this module inside the HD nework for valid mutations etc.
-AD_module = np.loadtxt(path + "/data/lightcyan1.csv", delimiter=';', usecols=1, skiprows=1, dtype=int)
+start_module = evaluate_module.start_module
 
 # initialise
 np.random.seed(42)
 f = evaluate_module.f
 
 # parameters settings
-n_variabes = len(AD_module)  # might change
+n_variabes = len(start_module)  # might change
 pop_size = 50
 n_generations = 1000
 mutation_rate = 1 / n_variabes
@@ -52,11 +51,11 @@ def init_population(func, guide=False):
     do this by randomly adding and removing genes in the module.
     :return:
     """
-    parents = [AD_module]  # start with only the AD module
-    parents_f = [func(AD_module)]
+    parents = [start_module]  # start with only the AD module
+    parents_f = [func(start_module)]
 
     while len(parents) != pop_size:
-        parent = AD_module.copy()
+        parent = start_module.copy()
         if not guide:
             mutation(parent, mutation_rate_init)
         else:
