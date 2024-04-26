@@ -18,8 +18,8 @@ f = evaluate_module.f
 
 # parameters settings
 n_variabes = len(start_module)  # might change
-pop_size = 50
-n_generations = 1000
+pop_size = 100
+n_generations = 100
 mutation_rate = 1 / n_variabes
 mutation_rate_init = 5 * mutation_rate
 crossover_probability = 0.6
@@ -103,12 +103,9 @@ def genetic_algorithm(func, generations_left=None):
     x_opt = None
 
     # construct the initial population
-    print("constructing the initial population...")
     parents, parents_f = init_population(func)
-    print("construction done.")
 
     while generations_left > 0:
-        print("starting the algorithm. Generations left:", generations_left)
         offspring = roulette_wheel_selection(parents, parents_f)
 
         for i in range(0, pop_size - (pop_size % 2), 2):
@@ -120,12 +117,13 @@ def genetic_algorithm(func, generations_left=None):
         parents = offspring.copy()
         for i in range(pop_size):
             parents_f[i] = func(parents[i])
-            generations_left = generations_left - 1
             if parents_f[i] > f_opt:
                 f_opt = parents_f[i]
                 x_opt = parents[i].copy()
+        generations_left = generations_left - 1
 
     print(f_opt, x_opt)
+
 
     return f_opt, x_opt
 
@@ -134,8 +132,9 @@ def main(argv):
     del argv  # the function doesn't use command-line arguments
     f_opt_result = 0
     # We run the algorithm 100 independent times.
-    n_runs = 10
+    n_runs = 100
     for _ in range(n_runs):
+        print("start run ", _)
         f_opt, _ = genetic_algorithm(f)
         f_opt_result += f_opt
         f.reset()
