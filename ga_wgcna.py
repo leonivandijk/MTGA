@@ -4,6 +4,7 @@ from absl import app
 import numpy as np
 import pandas as pd
 import evaluate_module
+import concurrent.futures
 import os
 
 path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
@@ -18,8 +19,8 @@ f = evaluate_module.f
 
 # parameters settings
 n_variabes = len(start_module)  # might change
-pop_size = 100
-n_generations = 100
+pop_size = 25
+n_generations = 75
 mutation_rate = 1 / n_variabes
 mutation_rate_init = 5 * mutation_rate
 crossover_probability = 0.6
@@ -132,12 +133,14 @@ def main(argv):
     del argv  # the function doesn't use command-line arguments
     f_opt_result = 0
     # We run the algorithm 100 independent times.
-    n_runs = 100
+    n_runs = 25
     for _ in range(n_runs):
-        print("start run ", _)
+        start_subrun = time.time()
         f_opt, _ = genetic_algorithm(f)
         f_opt_result += f_opt
         f.reset()
+        end_subrun = time.time()
+        print("end run ", _, (end_subrun - start_subrun), "seconds")
     print("The average f_opt is %s" % (f_opt_result / n_runs))
 
 
