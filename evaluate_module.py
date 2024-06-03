@@ -1,24 +1,16 @@
 import numpy as np
 import pandas as pd
-import gc
 import os
 from ioh import problem, OptimizationType, get_problem, logger, ProblemClass
 
-path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
-
-# hd data
-# PHENO_HD   = np.loadtxt(path + "/data/PHENO_HD.csv", delimiter=';', usecols=1, skiprows=1)
-# EXPRMAT_HD = pd.read_csv(path + "/data/expr_hd_turquoise.csv", delimiter=';')
-# EXPRMAT_HD = np.array(EXPRMAT_HD)
-
-# ad data
-EXPRMAT_AD = pd.read_csv(path + "/data/EXPRMAT_AD.csv", delimiter=';')
-AD_DEGS = pd.read_csv(path + "/data/results_deseq2_15385.csv", delimiter='\t', index_col=0)
-TOM_AD = pd.read_csv(path + "/data/TOM_AD.csv", delimiter=';')
-PHENO_AD = np.loadtxt(path + "/data/PHENO_AD.csv", delimiter=';', usecols=1, skiprows=1, dtype=int)
-
-AD_MODULE = np.array(pd.read_table(path + "/data/saddlebrown.txt", dtype=str))
-AD_GENEMEMBERSHIP = pd.read_csv(path + "/data/geneModuleMembership.csv", delimiter=';', usecols=range(3), index_col=0)
+# global variables
+search_space = None
+expr_mat = None
+tom = None
+max_tom = None
+pheno = None
+AD_MODULE = None
+start_module = None
 
 # algorithm parameters
 min_size = 30
@@ -27,30 +19,75 @@ min_gene_overlap = .5
 deg_threshold = .05
 member_threshold = .5
 
+def module_eigengene(x=None, mod_expr=None):
+    """
+    computes the module eigengene for a group of genes in the HD network.
+    :param mod_expr: if mod_expr is already computed elsewhere
+    :param x: a module, i.e. a group of genes, in the HD network
+    :return: the first principal component of the expression matrix of the corresponding module
+    """
+    if x is not None:
+        mod_expr = expr_mat[:, x.astype(bool).squeeze()]
+    else:
+        mod_expr = mod_expr
+    scaled_mod_expr = ((mod_expr - np.mean(mod_expr, axis=0)) / np.std(mod_expr, axis=0)).T
 
-def create_searchspace(geneMemberShip, degs):
-    degs = degs[degs["padj"] < deg_threshold].index
-    members = geneMemberShip[abs(geneMemberShip["Correlation"]) > member_threshold].index
-    searchspace = degs.union(members).to_numpy(dtype=str)
-    return searchspace
+    u, d, v = np.linalg.svd(scaled_mod_expr)
+    v = v[0:1, :]
+    pc = v[0].tolist()
+    return pc
 
 
-# problem specific settings
-search_space = create_searchspace(geneMemberShip=AD_GENEMEMBERSHIP, degs=AD_DEGS)
-disease_data = [EXPRMAT_AD, TOM_AD, PHENO_AD]
+def load_data(disease):
+    print("loading data of", disease, "network")
+    global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module
+    path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
 
-# make data-matrices smaller for efficient memory use
-expr_mat = np.array(disease_data[0].loc[:, search_space])
-tom = np.array(disease_data[1].loc[search_space, search_space])
-pheno = disease_data[2]
+    # initial solution
+    AD_MODULE = np.array(pd.read_table(path + "/data/saddlebrown.txt", dtype=str))
 
-del disease_data
-gc.collect()
+    def computeGeneModuleMembership():
+        module_expression = np.array(expr_mat.loc[:,AD_MODULE[:,0]])
+        me = pd.DataFrame(module_eigengene(x=None, mod_expr=module_expression), index=expr_mat.index)
+        expr_mat['me'] = me
+        return expr_mat.corr()['me'].iloc[:-1]
 
-start_module = np.zeros(shape=search_space.shape, dtype=int)
-for i in AD_MODULE:
-    index = np.where(search_space == i)
-    start_module[index] = 1
+    def create_searchspace(degs):
+        degs = degs[degs["padj"] < deg_threshold].index
+        gene_module_membership = computeGeneModuleMembership()
+        members = gene_module_membership[abs(gene_module_membership) > member_threshold].index
+        searchspace = degs.union(members).to_numpy(dtype=str)
+        return searchspace
+
+    if disease == "AD":
+        # ad data
+        expr_mat = pd.read_csv(path + "/data/EXPRMAT_AD.csv", delimiter=';')
+        tom = pd.read_csv(path + "/data/TOM_AD.csv", delimiter=';')
+        pheno = np.loadtxt(path + "/data/PHENO_AD.csv", delimiter=';', usecols=1, skiprows=1, dtype=int)
+        # extra results
+        degs = pd.read_csv(path + "/data/results_deseq2_15385.csv", delimiter='\t', index_col=0)
+
+    elif disease == "HD":
+        # hd data
+        expr_mat = pd.read_csv(path + "/data/EXPRMAT_HD.csv", delimiter=';')
+        tom = pd.read_csv(path + "/data/TOM_HD.csv", delimiter=';')
+        pheno = np.loadtxt(path + "/data/PHENO_HD.csv", delimiter='\t', usecols=1, skiprows=1, dtype=int)
+        # extra results
+        degs = pd.read_csv(path + "/data/result_deseq2_15984.csv", delimiter='\t', index_col=0)
+    else:
+        raise ValueError("Unsupported disease code: " + disease)
+
+    search_space = create_searchspace(degs=degs)
+    # make data-matrices smaller for efficient memory use
+    expr_mat = np.array(expr_mat.loc[:, search_space])
+    tom = np.array(tom.loc[search_space, search_space])
+    max_tom = np.max(np.triu(tom, k=1))
+
+    start_module = np.zeros(shape=search_space.shape, dtype=int)
+    for i in AD_MODULE:
+        index = np.where(search_space == i)
+        start_module[index] = 1
+    print("loading done")
 
 
 def is_valid(x):
@@ -73,21 +110,6 @@ def is_valid(x):
     return True
 
 
-def module_eigengene(x):
-    """
-    computes the module eigengene for a group of genes in the HD network.
-    :param x: a module, i.e. a group of genes, in the HD network
-    :return: the first principal component of the expression matrix of the corresponding module
-    """
-    mod_expr = expr_mat[:, x.astype(bool).squeeze()]
-    scaled_mod_expr = ((mod_expr - np.mean(mod_expr, axis=0)) / np.std(mod_expr, axis=0)).T
-
-    u, d, v = np.linalg.svd(scaled_mod_expr)
-    v = v[0:1, :]
-    pc = v[0].tolist()
-    return pc
-
-
 def fitness(x):
     """
     method that computes the "quality" of a given module in the HD network
@@ -102,7 +124,7 @@ def fitness(x):
 
     # quality metric 1
     # might be less strong than metric 2, as this metric will probably never reach >.8
-    me = module_eigengene(x)
+    me = module_eigengene(x=x, mod_expr=None)
     signal = np.corrcoef(me, pheno)[0, 1]
     signal = abs(signal)
 
@@ -111,7 +133,6 @@ def fitness(x):
     # if so, think of an extra tradeoff metric that favours larger modules
     edges = np.sum(np.triu(tom[start_module.astype(bool).squeeze()][:, start_module.astype(bool).squeeze()], k=1)) #exclude diagonal
     # scale max number of possible edges by upper bound on strength of a connection
-    max_tom = np.max(np.triu(tom, k=1))
     possible_edges = (sum(x) * (sum(x) - 1) / 2) * max_tom
 
     return signal + (edges / possible_edges)
@@ -132,9 +153,9 @@ logger = logger.Analyzer(
     root=os.getcwd(),
     # Store data in the current working directory
     folder_name="results",
-    algorithm_name="GA-transfer-learning",
+    algorithm_name="GA-HD-saddlebrown",
     # meta-data for the algorithm used to generate these results.
-    algorithm_info="AD-tests-saddlebrown",
+    algorithm_info="HD-tests-saddlebrown",
     store_positions=True  # store x-variables in the logged files
 )
 f.attach_logger(logger)

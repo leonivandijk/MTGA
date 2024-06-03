@@ -4,13 +4,14 @@ from absl import app
 import numpy as np
 import pandas as pd
 import evaluate_module
+import random
 import concurrent.futures
 import os
+import argparse
 
 path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
 
 # load in gene/wgcna options
-#TOM_HD = pd.read_csv("./data/tom_hd.csv", delimiter=';')
 start_module = evaluate_module.start_module
 
 # initialise
@@ -19,8 +20,8 @@ f = evaluate_module.f
 
 # parameters settings
 n_variabes = len(start_module)  # might change
-pop_size = 25
-n_generations = 75
+pop_size = 100
+n_generations = 100
 mutation_rate = 1 / n_variabes
 mutation_rate_init = 5 * mutation_rate
 crossover_probability = 0.6
@@ -95,6 +96,14 @@ def onepoint_crossover(p1, p2):
         p1[idx:] = p2[idx:]
         p2[idx:] = t
 
+def npoint_crossover(n, p1, p2):
+    if (np.random.uniform(0, 1) < crossover_probability):
+        idxs = sorted(random.sample(range(n_variabes), n))
+        for idx in idxs:
+            t = p1[idx:]
+            p1[idx:] = p2[idx:]
+            p2[idx:] = t
+
 
 def genetic_algorithm(func, generations_left=None):
     if generations_left is None:
@@ -110,7 +119,7 @@ def genetic_algorithm(func, generations_left=None):
         offspring = roulette_wheel_selection(parents, parents_f)
 
         for i in range(0, pop_size - (pop_size % 2), 2):
-            onepoint_crossover(offspring[i], offspring[i + 1])
+            npoint_crossover(2, offspring[i], offspring[i + 1])
 
         for i in range(pop_size):
             mutation(offspring[i], rate=mutation_rate)
@@ -129,11 +138,16 @@ def genetic_algorithm(func, generations_left=None):
     return f_opt, x_opt
 
 
-def main(argv):
-    del argv  # the function doesn't use command-line arguments
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--disease',
+                        help="Choose between AD or HD")
+    args, unknown = parser.parse_known_args()
+    evaluate_module.load_data(args.disease)
+
     f_opt_result = 0
     # We run the algorithm 100 independent times.
-    n_runs = 25
+    n_runs = 100
     for _ in range(n_runs):
         start_subrun = time.time()
         f_opt, _ = genetic_algorithm(f)
