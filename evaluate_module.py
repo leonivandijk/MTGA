@@ -11,6 +11,9 @@ max_tom = None
 pheno = None
 AD_MODULE = None
 start_module = None
+f = None
+
+path = "/Users/leonivandijk/Desktop/thesis/pyfiles/MCGA"
 
 # algorithm parameters
 min_size = 30
@@ -18,6 +21,24 @@ min_gene_overlap = .5
 # min_func_overlap = .75
 deg_threshold = .05
 member_threshold = .5
+
+# initial solution
+AD_MODULE = np.array(pd.read_table(path + "/data/saddlebrown.txt", dtype=str))
+
+
+def computeGeneModuleMembership():
+    module_expression = np.array(expr_mat.loc[:, AD_MODULE[:, 0]])
+    me = pd.DataFrame(module_eigengene(x=None, mod_expr=module_expression), index=expr_mat.index)
+    expr_mat['me'] = me
+    return expr_mat.corr()['me'].iloc[:-1]
+
+
+def create_searchspace(degs):
+    degs = degs[degs["padj"] < deg_threshold].index
+    gene_module_membership = computeGeneModuleMembership()
+    members = gene_module_membership[abs(gene_module_membership) > member_threshold].index
+    searchspace = degs.union(members).to_numpy(dtype=str)
+    return searchspace
 
 def module_eigengene(x=None, mod_expr=None):
     """
@@ -37,27 +58,9 @@ def module_eigengene(x=None, mod_expr=None):
     pc = v[0].tolist()
     return pc
 
-
 def load_data(disease):
     print("loading data of", disease, "network")
-    global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module
-    path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
-
-    # initial solution
-    AD_MODULE = np.array(pd.read_table(path + "/data/saddlebrown.txt", dtype=str))
-
-    def computeGeneModuleMembership():
-        module_expression = np.array(expr_mat.loc[:,AD_MODULE[:,0]])
-        me = pd.DataFrame(module_eigengene(x=None, mod_expr=module_expression), index=expr_mat.index)
-        expr_mat['me'] = me
-        return expr_mat.corr()['me'].iloc[:-1]
-
-    def create_searchspace(degs):
-        degs = degs[degs["padj"] < deg_threshold].index
-        gene_module_membership = computeGeneModuleMembership()
-        members = gene_module_membership[abs(gene_module_membership) > member_threshold].index
-        searchspace = degs.union(members).to_numpy(dtype=str)
-        return searchspace
+    global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module, f
 
     if disease == "AD":
         # ad data
@@ -88,6 +91,13 @@ def load_data(disease):
         index = np.where(search_space == i)
         start_module[index] = 1
     print("loading done")
+
+    # Call get_problem to instantiate a version of this problem
+    f = get_problem('module_fitness',
+                    problem_class=ProblemClass.INTEGER,
+                    instance=0,
+                    dimension=len(search_space))
+    f.attach_logger(logger)
 
 
 def is_valid(x):
@@ -135,7 +145,10 @@ def fitness(x):
     # scale max number of possible edges by upper bound on strength of a connection
     possible_edges = (sum(x) * (sum(x) - 1) / 2) * max_tom
 
-    return signal + (edges / possible_edges)
+    #print("correlation:", signal)
+    #print("connectivity:", (edges / possible_edges))
+
+    return signal * (edges / possible_edges)
 
 
 problem.wrap_integer_problem(fitness,
@@ -143,11 +156,6 @@ problem.wrap_integer_problem(fitness,
                              optimization_type=OptimizationType.MAX,
                              lb=0)
 
-# Call get_problem to instantiate a version of this problem
-f = get_problem('module_fitness',
-                problem_class=ProblemClass.INTEGER,
-                instance=0,
-                dimension=len(search_space))
 
 logger = logger.Analyzer(
     root=os.getcwd(),
@@ -158,4 +166,3 @@ logger = logger.Analyzer(
     algorithm_info="HD-tests-saddlebrown",
     store_positions=True  # store x-variables in the logged files
 )
-f.attach_logger(logger)
