@@ -2,12 +2,13 @@ import sys
 import time
 from absl import app
 import numpy as np
-import pandas as pd
 import evaluate_module
 import random
-import concurrent.futures
-import os
+from numba import cuda
 import argparse
+import os
+# Set this at the beginning of your script
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
 # initialise
@@ -16,6 +17,66 @@ np.random.seed(42)
 pop_size = 150
 n_generations = 250
 crossover_probability = 0.6
+
+# we use 3 cuda kernels according to paper by M. Abbasi.
+## kernel 1: constructs initial population and evaluates its fitness. 1 individual per thread.
+@cuda.jit
+def init_population_kernel(func, parents, parents_f, start_module, mutation_rate_init, n_variables, tom, guide=True):
+    idx = cuda.grid(1) # 1dimensional grid as our populations are arrays
+    if idx < n_variables-1:
+        individual = start_module.copy()
+
+    # Perform mutation or guided mutation
+    if not guide:
+        mutation(individual, mutation_rate_init, n_variables)
+    else:
+        guided_mutation(individual, mutation_rate_init, n_variables, tom)
+
+    if evaluate_module.is_valid(individual):
+        # Store the valid individual and its fitness score
+        parents[idx] = individual
+        parents_f[idx] = func(individual)
+
+
+def init_population(func, start_module, mutation_rate_init, n_variables, guide=False):
+    """
+    Constructs the initial population for the Genetic Algorithm. The population consists of binary vectors where
+    every element corresponds to a gene. An element gets the value ‘1’ if the gene is part of the given module and
+    ‘0’ if not. We want the initial population to explore the neighbourhood of the AD module in the HD brain. We can
+    do this by randomly adding and removing genes in the module.
+    :return:
+    """
+
+    # Initialize the population and fitness scores arrays
+    population = np.zeros((pop_size, n_variables), dtype=np.int32)
+    fitness_scores = np.zeros(pop_size, dtype=np.float32)
+
+    # Allocate device memory and copy data from host to device
+    d_population = cuda.to_device(population)
+    d_fitness_scores = cuda.to_device(fitness_scores)
+    d_start_module = cuda.to_device(np.array(start_module, dtype=np.int32))
+    d_tom = cuda.to_device(evaluate_module.tom)
+
+    # Define the number of threads per block and the number of blocks per grid
+    threads_per_block = 256  # TODO: see if this makes sense for the liacs machine
+    blocks_per_grid = (pop_size + threads_per_block - 1) // threads_per_block
+
+    # Launch the kernel
+    init_population_kernel[blocks_per_grid, threads_per_block](func, d_population, d_fitness_scores, d_start_module,
+                                                               mutation_rate_init, n_variables, d_tom, guide)
+
+    # Copy the results back to the host
+    d_population.copy_to_host(population)
+    d_fitness_scores.copy_to_host(fitness_scores)
+
+    return population, fitness_scores
+
+# kernel 2: forms new children by applying multiple operators and evaluates their fitness
+@cuda.jit
+def fitness_kernel( ):
+
+# kernel 3: selects the new population
+
 
 
 def mutation(p, rate, n_variables):
@@ -65,32 +126,6 @@ def guided_mutation(p, rate, n_variables, tom):
 
 
 
-
-
-def init_population(func, start_module, mutation_rate_init, n_variables, guide=False):
-    """
-    Constructs the initial population for the Genetic Algorithm. The population consists of binary vectors where
-    every element corresponds to a gene. An element gets the value ‘1’ if the gene is part of the given module and
-    ‘0’ if not. We want the initial population to explore the neighbourhood of the AD module in the HD brain. We can
-    do this by randomly adding and removing genes in the module.
-    :return:
-    """
-    parents = [start_module]  # start with only the AD module
-    parents_f = [func(start_module)]
-
-    while len(parents) != pop_size:
-        parent = start_module.copy()
-        if not guide:
-            mutation(parent, mutation_rate_init, n_variables)
-        else:
-            guided_mutation(parent)
-        if evaluate_module.is_valid(parent):
-            parents.append(parent)
-            parents_f.append(func(parent))
-
-    return parents, parents_f
-
-
 def roulette_wheel_selection(parent, parent_f):
     # Plusing 0.001 to avoid dividing 0
     f_min = min(parent_f)
@@ -127,6 +162,14 @@ def npoint_crossover(n, p1, p2, n_variables):
             p1[idx:] = p2[idx:]
             p2[idx:] = t
 
+def uniform_crossover(p1, p2, n_variables):
+    if (np.random.uniform(0, 1) < crossover_probability):
+        for i in range(n_variables):
+            if np.random.uniform(0, 1) < 0.5:
+                t = p1[i]
+                p1[i] = p2[i]
+                p2[i] = t
+
 
 def genetic_algorithm(func, start_module, generations_left=None):
     # parameters settings
@@ -141,14 +184,15 @@ def genetic_algorithm(func, start_module, generations_left=None):
     x_opt = None
 
     # construct the initial population
-    parents, parents_f = init_population(func, start_module, mutation_rate_init, n_variables)
+    parents, parents_f = init_population(func, start_module, mutation_rate_init, n_variables, guide=True)
+    cuda.synchronize()
 
     while generations_left > 0:
 
         offspring = roulette_wheel_selection(parents, parents_f)
 
         for i in range(0, pop_size - (pop_size % 2), 2):
-            npoint_crossover(2, offspring[i], offspring[i + 1], n_variables)
+            uniform_crossover(offspring[i], offspring[i + 1], n_variables)
 
         for i in range(pop_size):
             #mutation(offspring[i], rate=mutation_rate, n_variables=n_variables)

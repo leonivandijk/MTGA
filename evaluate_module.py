@@ -68,7 +68,7 @@ def load_data(disease):
         tom = pd.read_csv(path + "/data/TOM_AD.csv", delimiter=';')
         pheno = np.loadtxt(path + "/data/PHENO_AD.csv", delimiter=';', usecols=1, skiprows=1, dtype=int)
         # extra results
-        degs = pd.read_csv(path + "/data/results_deseq2_15385.csv", delimiter='\t', index_col=0)
+        degs = pd.read_csv(path + "/data/result_DESeq15380.csv", delimiter='\t', index_col=0)
 
     elif disease == "HD":
         # hd data
@@ -76,7 +76,7 @@ def load_data(disease):
         tom = pd.read_csv(path + "/data/TOM_HD.csv", delimiter=';')
         pheno = np.loadtxt(path + "/data/PHENO_HD.csv", delimiter='\t', usecols=1, skiprows=1, dtype=int)
         # extra results
-        degs = pd.read_csv(path + "/data/result_deseq2_15984.csv", delimiter='\t', index_col=0)
+        degs = pd.read_csv(path + "/data/result_DESeq15989.csv", delimiter='\t', index_col=0)
     else:
         raise ValueError("Unsupported disease code: " + disease)
 
