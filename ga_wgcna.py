@@ -9,7 +9,6 @@ import concurrent.futures
 import os
 import argparse
 
-path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
 # initialise
 np.random.seed(42)
 
@@ -128,6 +127,16 @@ def npoint_crossover(n, p1, p2, n_variables):
             p2[idx:] = t
 
 
+def uniform_crossover(p1, p2, n_variables):
+    if (np.random.uniform(0, 1) < crossover_probability):
+        for i in range(n_variables):
+            if np.random.uniform(0, 1) < 0.5:
+                t = p1[i]
+                p1[i] = p2[i]
+                p2[i] = t
+
+
+
 def genetic_algorithm(func, start_module, generations_left=None):
     # parameters settings
     n_variables = len(start_module)
@@ -148,7 +157,7 @@ def genetic_algorithm(func, start_module, generations_left=None):
         offspring = roulette_wheel_selection(parents, parents_f)
 
         for i in range(0, pop_size - (pop_size % 2), 2):
-            npoint_crossover(2, offspring[i], offspring[i + 1], n_variables)
+            uniform_crossover(offspring[i], offspring[i + 1], n_variables)
 
         for i in range(pop_size):
             #mutation(offspring[i], rate=mutation_rate, n_variables=n_variables)
