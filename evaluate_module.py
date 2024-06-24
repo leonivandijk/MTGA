@@ -13,7 +13,7 @@ AD_MODULE = None
 start_module = None
 f = None
 
-path = "/data/s3035158/data/"
+path = "/Users/leonivandijk/Desktop/thesis/pyfiles/MCGA"
 
 # algorithm parameters
 min_size = 30
@@ -65,19 +65,19 @@ def load_data(disease):
 
     if disease == "AD":
         # ad data
-        expr_mat = pd.read_csv(path + "EXPRMAT_AD.csv", delimiter=';')
-        tom = pd.read_csv(path + "TOM_AD.csv", delimiter=';')
-        pheno = np.loadtxt(path + "PHENO_AD.csv", delimiter=';', usecols=1, skiprows=1, dtype=int)
+        expr_mat = pd.read_csv(path + "/data/EXPRMAT_AD.csv", delimiter=';')
+        tom = pd.read_csv(path + "/data/TOM_AD.csv", delimiter=';')
+        pheno = np.loadtxt(path + "/data/PHENO_AD.csv", delimiter=';', usecols=1, skiprows=1, dtype=int)
         # extra results
-        degs = pd.read_csv(path + "results_deseq2_15385.csv", delimiter='\t', index_col=0)
+        degs = pd.read_csv(path + "/data/results_deseq2_15385.csv", delimiter='\t', index_col=0)
 
     elif disease == "HD":
         # hd data
-        expr_mat = pd.read_csv(path + "EXPRMAT_HD.csv", delimiter=';')
-        tom = pd.read_csv(path + "TOM_HD.csv", delimiter=';')
-        pheno = np.loadtxt(path + "PHENO_HD.csv", delimiter='\t', usecols=1, skiprows=1, dtype=int)
+        expr_mat = pd.read_csv(path + "/data/EXPRMAT_HD.csv", delimiter=';')
+        tom = pd.read_csv(path + "/data/TOM_HD.csv", delimiter=';')
+        pheno = np.loadtxt(path + "/data/PHENO_HD.csv", delimiter='\t', usecols=1, skiprows=1, dtype=int)
         # extra results
-        degs = pd.read_csv(path + "result_deseq2_15984.csv", delimiter='\t', index_col=0)
+        degs = pd.read_csv(path + "/data/result_deseq2_15984.csv", delimiter='\t', index_col=0)
     else:
         raise ValueError("Unsupported disease code: " + disease)
 
