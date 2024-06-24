@@ -24,7 +24,7 @@ member_threshold = .5
 soft_thresh_size = .5
 
 # initial solution
-AD_MODULE = np.array(pd.read_table(path + "saddlebrown.txt", dtype=str))
+AD_MODULE = np.array(pd.read_table(path + "/data/saddlebrown.txt", dtype=str))
 
 
 def computeGeneModuleMembership():
