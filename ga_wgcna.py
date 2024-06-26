@@ -10,12 +10,11 @@ import os
 # Set this at the beginning of your script
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-path = "/Users/leonivandijk/Desktop/thesis/pyfiles"
 # initialise
 np.random.seed(42)
 
-pop_size = 150
-n_generations = 250
+pop_size = 250
+n_generations = 400
 crossover_probability = 0.6
 
 # we use 3 cuda kernels according to paper by M. Abbasi.
@@ -58,7 +57,7 @@ def init_population(func, start_module, mutation_rate_init, n_variables, guide=F
     d_tom = cuda.to_device(evaluate_module.tom)
 
     # Define the number of threads per block and the number of blocks per grid
-    threads_per_block = 256  # TODO: see if this makes sense for the liacs machine
+    threads_per_block = 48  # TODO: see if this makes sense for the liacs machine
     blocks_per_grid = (pop_size + threads_per_block - 1) // threads_per_block
 
     # Launch the kernel
@@ -94,10 +93,11 @@ def mutation(p, rate, n_variables):
 
 def guided_mutation(p, rate, n_variables, tom):
     # randomly select a number of nodes according to the rate
-    n_nodes = int(np.round(rate*n_variables))
-    module_size = sum(p)
-    module_genes = np.flatnonzero(p)
+
+    n_nodes = int(np.round(rate * n_variables))
     for i in range(n_nodes):
+        module_genes = np.flatnonzero(p)
+        module_size = sum(p)
         # select a node in the module
         selected_node = int(np.round(float(np.random.uniform(0, 1) * (module_size - 1))))
         selected_gene = int(module_genes[selected_node])
@@ -111,20 +111,17 @@ def guided_mutation(p, rate, n_variables, tom):
 
         # then select the node to remove
         # low connection higher selection probability
-        to_module = tom[p.astype(bool).squeeze()][:, p.astype(bool).squeeze()]
-        row = to_module[selected_node,:].copy()
-        row[selected_node] = 1
-        row = 1 - row
-        prob_remove = row/np.sum(row)
-        remove = np.random.choice(module_size, p=prob_remove)
-        remove_gene = int(module_genes[remove])
+        if np.random.uniform(0, 1) > 0.3:
+            to_module = tom[p.astype(bool).squeeze()][:, p.astype(bool).squeeze()]
+            row = to_module[selected_node,:].copy()
+            row[selected_node] = 1
+            row = 1 - row
+            prob_remove = row/np.sum(row)
+            remove = np.random.choice(module_size, p=prob_remove)
+            remove_gene = int(module_genes[remove])
+            p[remove_gene] = 0
 
         p[add] = 1
-        p[remove_gene] = 0
-
-
-
-
 
 def roulette_wheel_selection(parent, parent_f):
     # Plusing 0.001 to avoid dividing 0
@@ -142,6 +139,19 @@ def roulette_wheel_selection(parent, parent_f):
         while r > rw[index]:
             index = index + 1
 
+        select_parent.append(parent[index].copy())
+    return select_parent
+
+def tournament_selection(parent, parent_f):
+    select_parent = []
+    for i in range(len(parent)) :
+        pre_select = np.random.choice(len(parent_f), 5, replace = False)
+        max_f = parent_f[pre_select[0]]
+        index = pre_select[0]
+        for p in pre_select:
+            if parent_f[p] > max_f:
+                index = p
+                max_f = parent_f[p]
         select_parent.append(parent[index].copy())
     return select_parent
 
@@ -171,10 +181,20 @@ def uniform_crossover(p1, p2, n_variables):
                 p2[i] = t
 
 
+def uniform_crossover(p1, p2, n_variables):
+    if (np.random.uniform(0, 1) < crossover_probability):
+        for i in range(n_variables):
+            if np.random.uniform(0, 1) < 0.5:
+                t = p1[i]
+                p1[i] = p2[i]
+                p2[i] = t
+
+
+
 def genetic_algorithm(func, start_module, generations_left=None):
     # parameters settings
     n_variables = len(start_module)
-    mutation_rate = 1 / n_variables
+    mutation_rate = 2 / n_variables
     mutation_rate_init = mutation_rate
 
     if generations_left is None:
@@ -189,10 +209,11 @@ def genetic_algorithm(func, start_module, generations_left=None):
 
     while generations_left > 0:
 
-        offspring = roulette_wheel_selection(parents, parents_f)
+        offspring = tournament_selection(parents, parents_f)
 
         for i in range(0, pop_size - (pop_size % 2), 2):
-            uniform_crossover(offspring[i], offspring[i + 1], n_variables)
+            npoint_crossover(10, offspring[i], offspring[i + 1], n_variables)
+
 
         for i in range(pop_size):
             #mutation(offspring[i], rate=mutation_rate, n_variables=n_variables)
@@ -217,7 +238,7 @@ def main(disease):
 
     f_opt_result = 0
     # We run the algorithm 100 independent times.
-    n_runs = 5
+    n_runs = 25
     for _ in range(n_runs):
         print("start run", _)
         start_subrun = time.time()
