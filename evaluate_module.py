@@ -115,8 +115,8 @@ def is_valid(x):
         return False
     if sum(x) < min_size:
         return False
-    #if 1 - (sum(start_module) - sum(x[start_module.astype(bool)])) / sum(start_module) < min_gene_overlap:
-    #    return False
+    if 1 - (sum(start_module) - sum(x[start_module.astype(bool)])) / sum(start_module) < min_gene_overlap:
+        return False
     # TODO is_valid(x): add method body for requirement 4 (dev-stage 2)
     return True
 
@@ -143,18 +143,14 @@ def fitness(x):
     # might favour smaller modules due to sparseness of our graph.
     # if so, think of an extra tradeoff metric that favours larger modules
     module_size = sum(x)
-    edges = np.sum(np.triu(tom[start_module.astype(bool).squeeze()][:, start_module.astype(bool).squeeze()], k=1)) #exclude diagonal
+    edges = np.sum(np.triu(tom[x.astype(bool).squeeze()][:, x.astype(bool).squeeze()], k=1)) #exclude diagonal
     # scale max number of possible edges by upper bound on strength of a connection
     possible_edges = (module_size * (module_size - 1) / 2) * max_tom
-
-    # soft threshold of module size
-    startmodule_size = sum(start_module)
-    size_change = abs(module_size - startmodule_size)/startmodule_size
 
     #print("correlation:", signal)
     #print("connectivity:", (edges / possible_edges))
 
-    return signal * (edges / possible_edges) - soft_thresh_size * size_change
+    return signal * (edges / possible_edges)
 
 
 problem.wrap_integer_problem(fitness,
