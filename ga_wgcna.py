@@ -4,7 +4,7 @@ from absl import app
 import numpy as np
 import evaluate_module
 import random
-from numba import cuda
+from numba import cuda, float32, int32
 import argparse
 import os
 # Set this at the beginning of your script
@@ -54,10 +54,10 @@ def init_population(func, start_module, mutation_rate_init, n_variables, guide=F
     d_population = cuda.to_device(population)
     d_fitness_scores = cuda.to_device(fitness_scores)
     d_start_module = cuda.to_device(np.array(start_module, dtype=np.int32))
-    d_tom = cuda.to_device(evaluate_module.tom)
+    d_tom = cuda.to_device(np.array(evaluate_module.tom, dtype=np.int32))
 
     # Define the number of threads per block and the number of blocks per grid
-    threads_per_block = 48  # TODO: see if this makes sense for the liacs machine
+    threads_per_block = 512
     blocks_per_grid = (pop_size + threads_per_block - 1) // threads_per_block
 
     # Launch the kernel
@@ -73,7 +73,7 @@ def init_population(func, start_module, mutation_rate_init, n_variables, guide=F
 # kernel 2: forms new children by applying multiple operators and evaluates their fitness
 @cuda.jit
 def fitness_kernel( ):
-
+    return []
 # kernel 3: selects the new population
 
 
