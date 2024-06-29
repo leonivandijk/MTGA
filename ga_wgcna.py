@@ -32,8 +32,8 @@ def mutation(p, rate, n_variables):
 
 def guided_mutation(p, rate, n_variables, tom):
     # randomly select a number of nodes according to the rate
-
     n_nodes = int(np.round(rate * n_variables))
+
     for i in range(n_nodes):
         module_genes = np.flatnonzero(p)
         module_size = sum(p)
@@ -43,14 +43,16 @@ def guided_mutation(p, rate, n_variables, tom):
 
         # mutate in the neighborhood of the selected gene: interchange low connected node with highly connected node
         # first select gene to be added; high connection higher selection probability
-        row = tom[selected_gene,:].copy()
-        row[selected_gene] = 0
-        prob_add = row/np.sum(row)
-        add = np.random.choice(n_variables, p=prob_add)
+        if np.random.uniform(0, 1) > 0.5:
+            row = tom[selected_gene,:].copy()
+            row[selected_gene] = 0
+            prob_add = row/np.sum(row)
+            add = np.random.choice(n_variables, p=prob_add)
+            p[add] = 1
 
-        # then select the node to remove
+        # or select a node to remove
         # low connection higher selection probability
-        if np.random.uniform(0, 1) > 0.3:
+        else:
             to_module = tom[p.astype(bool).squeeze()][:, p.astype(bool).squeeze()]
             row = to_module[selected_node,:].copy()
             row[selected_node] = 1
@@ -59,8 +61,6 @@ def guided_mutation(p, rate, n_variables, tom):
             remove = np.random.choice(module_size, p=prob_remove)
             remove_gene = int(module_genes[remove])
             p[remove_gene] = 0
-
-        p[add] = 1
 
 
 
