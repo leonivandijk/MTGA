@@ -1,6 +1,7 @@
+import os
+
 import numpy as np
 import pandas as pd
-import os
 from ioh import problem, OptimizationType, get_problem, logger, ProblemClass
 
 # global variables
@@ -18,16 +19,19 @@ path = "/data/s3035158/data/"
 # algorithm parameters
 min_size = 30
 min_gene_overlap = .5
-# min_func_overlap = .75
 deg_threshold = .05
 member_threshold = .5
-soft_thresh_size = .5
 
 # initial solution
 AD_MODULE = np.array(pd.read_table(path + "saddlebrown.txt", dtype=str))
 
 
 def computeGeneModuleMembership():
+    """
+    Computes the module membership for every gene; defined as the correlation of the gene's expression to the module
+    eigengene.
+    :return: A vector with the module membership for every gene
+    """
     module_expression = np.array(expr_mat.loc[:, AD_MODULE[:, 0]])
     me = pd.DataFrame(module_eigengene(x=None, mod_expr=module_expression), index=expr_mat.index)
     expr_mat['me'] = me
@@ -35,17 +39,25 @@ def computeGeneModuleMembership():
 
 
 def create_searchspace(degs):
-    degs = degs[degs["pvalue"] < deg_threshold].index
+    """
+    Constructs the search space for the genetic algorithm. The search space consists out of:
+    1. All genes that are differentially expressed between the disease- and control group (non-p-adjusted)
+    2. All genes with a module membership > the member_threshold of 0.5
+    :param degs: A dataset containing p-values for differential expression of all genes
+    :return: The search space
+    """
+    degs = degs[degs["pvalue"] < deg_threshold].index  # non p-adjusted for more exploration
     gene_module_membership = computeGeneModuleMembership()
     members = gene_module_membership[abs(gene_module_membership) > member_threshold].index
     searchspace = degs.union(members).to_numpy(dtype=str)
     return searchspace
 
+
 def module_eigengene(x=None, mod_expr=None):
     """
     computes the module eigengene for a group of genes in the HD network.
-    :param mod_expr: if mod_expr is already computed elsewhere
     :param x: a module, i.e. a group of genes, in the HD network
+    :param mod_expr: if mod_expr is already computed elsewhere
     :return: the first principal component of the expression matrix of the corresponding module
     """
     if x is not None:
@@ -59,7 +71,12 @@ def module_eigengene(x=None, mod_expr=None):
     pc = v[0].tolist()
     return pc
 
+
 def load_data(disease):
+    """
+    Assigning data to all global variables of this class.
+    :param disease: The disease for which we want to load data. Choose either "AD" or "HD"
+    """
     print("loading data of", disease, "network")
     global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module, f
 
@@ -103,11 +120,10 @@ def load_data(disease):
 
 def is_valid(x):
     """
-    method that checks a module for module requirements:
+    Method that checks a module for module requirements:
     1. the module should be formatted as a binary vector with one element for every gene in the co-expression matrix
     2. the minimal size of the module is 30
     3. the minimal 1-1 gene overlap ratio with respect to the reference module is 0.5
-    4. the minimal functional overlap with the reference module is 0.75
     :param x: a module, i.e. a group of genes, in the HD network
     :return: "True" if the module meets all requirements, "False" otherwise.
     """
@@ -117,13 +133,12 @@ def is_valid(x):
         return False
     if 1 - (sum(start_module) - sum(x[start_module.astype(bool)])) / sum(start_module) < min_gene_overlap:
         return False
-    # TODO is_valid(x): add method body for requirement 4 (dev-stage 2)
     return True
 
 
 def fitness(x):
     """
-    method that computes the "quality" of a given module in the HD network
+    Method that computes the "quality" of a given module in the HD network
     module quality is based on:
     1. the (differential) expression of the genes in the module with respect to the phenotype
     2. the density of the interactions between the genes in the module
@@ -134,21 +149,19 @@ def fitness(x):
         return 0
 
     # quality metric 1
-    # might be less strong than metric 2, as this metric will probably never reach >.8
     me = module_eigengene(x=x, mod_expr=None)
     signal = np.corrcoef(me, pheno)[0, 1]
     signal = abs(signal)
 
     # quality metric 2
-    # might favour smaller modules due to sparseness of our graph.
-    # if so, think of an extra tradeoff metric that favours larger modules
     module_size = sum(x)
-    edges = np.sum(np.triu(tom[x.astype(bool).squeeze()][:, x.astype(bool).squeeze()], k=1)) #exclude diagonal
+    edges = np.sum(np.triu(tom[x.astype(bool).squeeze()][:, x.astype(bool).squeeze()], k=1))  # exclude diagonal
     # scale max number of possible edges by upper bound on strength of a connection
     possible_edges = (module_size * (module_size - 1) / 2) * max_tom
 
     #print("correlation:", signal)
     #print("connectivity:", (edges / possible_edges))
+    #print("size:", module_size)
 
     return signal * (edges / possible_edges)
 
@@ -157,7 +170,6 @@ problem.wrap_integer_problem(fitness,
                              name='module_fitness',
                              optimization_type=OptimizationType.MAX,
                              lb=0)
-
 
 logger = logger.Analyzer(
     root=os.getcwd(),
