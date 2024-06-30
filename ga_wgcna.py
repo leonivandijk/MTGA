@@ -1,88 +1,86 @@
+import argparse
+import random
 import sys
 import time
-from absl import app
+
 import numpy as np
-import pandas as pd
+from absl import app
+
 import evaluate_module
-import random
-import concurrent.futures
-import os
-import argparse
-
-# initialise
-np.random.seed(42)
-
-pop_size = 150
-n_generations = 250
-crossover_probability = 0.6
 
 
-def mutation(p, rate, n_variables):
+def mutation(x, rate):
     """
-    Random mutation. (De-)Selects every gene with an equal probability equal to the mutation rate.
-    :param p:
-    :param rate:
-    :return:
+    In-place random mutation. (De-)Selects every gene with an equal probability equal to the mutation rate.
+    :param x: A binary array representing a module
+    :param rate: The mutation rate
     """
     for i in range(n_variables):
         if np.random.uniform(0, 1) < rate:
             # bit flipping
-            p[i] = 1 - p[i]
+            x[i] = 1 - x[i]
 
 
-def guided_mutation(p, rate, n_variables, tom):
-    # randomly select a number of nodes according to the rate
-    n_nodes = int(np.round(rate*n_variables))
-    module_size = sum(p)
-    module_genes = np.flatnonzero(p)
-    for i in range(n_nodes):
+def guided_mutation(x, rate, tom):
+    """
+    In-place guided mutation. (De-)Selects genes with a probability proportional to its connectivity to one of the
+    genes already in the module.
+    :param x: A binary array representing a module
+    :param rate: The mutation rate
+    :param tom: The topological overlap matrix of the disease network
+    """
+
+    n_mutate = int(np.round(rate * n_variables))
+
+    for i in range(n_mutate):
+        module_genes = np.flatnonzero(x)
+        module_size = sum(x)
         # select a node in the module
-        selected_node = int(np.round(float(np.random.uniform(0, 1) * (module_size - 1))))
-        selected_gene = int(module_genes[selected_node])
+        selected_index = int(np.round(float(np.random.uniform(0, 1) * (module_size - 1))))
+        selected_gene = int(module_genes[selected_index])
 
-        # mutate in the neighborhood of the selected gene: interchange low connected node with highly connected node
-        # first select gene to be added; high connection higher selection probability
-        row = tom[selected_gene,:].copy()
-        row[selected_gene] = 0
-        prob_add = row/np.sum(row)
-        add = np.random.choice(n_variables, p=prob_add)
+        # choice between add/remove depends on the size of the current module
+        # select gene to be added; higher tom-similarity to node get higher selection probability
+        if np.random.uniform(0, 1) > (2*module_size / n_variables):
+            row = tom[selected_gene, :].copy()
+            row[selected_gene] = 0
+            prob_add = row / np.sum(row)
+            add = np.random.choice(n_variables, p=prob_add)
+            x[add] = 1
 
-        # then select the node to remove
-        # low connection higher selection probability
-        to_module = tom[p.astype(bool).squeeze()][:, p.astype(bool).squeeze()]
-        row = to_module[selected_node,:].copy()
-        row[selected_node] = 1
-        row = 1 - row
-        prob_remove = row/np.sum(row)
-        remove = np.random.choice(module_size, p=prob_remove)
-        remove_gene = int(module_genes[remove])
-
-        p[add] = 1
-        p[remove_gene] = 0
-
-
+        # or select a node to remove; lower tom-similarity to node gets higher deselection probability
+        else:
+            to_module = tom[x.astype(bool).squeeze()][:, x.astype(bool).squeeze()]
+            row = to_module[selected_index, :].copy()
+            row[selected_index] = 1
+            row = 1 - row
+            prob_remove = row / np.sum(row)
+            remove = np.random.choice(module_size, p=prob_remove)
+            remove_gene = int(module_genes[remove])
+            x[remove_gene] = 0
 
 
-
-
-
-def init_population(func, start_module, mutation_rate_init, n_variables, guide=False):
+def init_population(func, start_module, tom, guide=False):
     """
     Constructs the initial population for the Genetic Algorithm. The population consists of binary vectors where
     every element corresponds to a gene. An element gets the value ‘1’ if the gene is part of the given module and
     ‘0’ if not. We want the initial population to explore the neighbourhood of the AD module in the HD brain. We can
     do this by randomly adding and removing genes in the module.
-    :return:
+    :param func: The fitness function as defined in evaluate_module.py
+    :param start_module: The module found by WGCNA which we want to optimize
+    :param tom: The topological overlap matrix of the disease network
+    :param guide: Method of mutation; "False" is random mutation, "True" is guided mutation.
+    :return: The initial parent population with its function values
     """
     parents = [start_module]  # start with only the AD module
-    parents_f = [func(start_module)]
+    parents_f = [func(start_module)]  # compute fitness value
 
     while len(parents) != pop_size:
         parent = start_module.copy()
         if not guide:
-            mutation(parent, mutation_rate_init, n_variables)
+            mutation(parent, mutation_rate_init)
         else:
-            guided_mutation(parent)
+            guided_mutation(parent, rate=mutation_rate_init, tom=tom)
         if evaluate_module.is_valid(parent):
             parents.append(parent)
             parents_f.append(func(parent))
@@ -91,16 +89,23 @@ def init_population(func, start_module, mutation_rate_init, n_variables, guide=F
 
 
 def roulette_wheel_selection(parent, parent_f):
-    # Plusing 0.001 to avoid dividing 0
+    """
+    Selection operator. The probability of selection is proportional to each individual's fitness, allowing higher
+    fitness individuals a greater chance of being selected.
+    :param parent: The population
+    :param parent_f: The fitness values of the population
+    :return: The population after the selection operator
+    """
     f_min = min(parent_f)
-    f_sum = sum(parent_f) - (f_min - 0.001) * len(parent_f)
+    f_sum = sum(parent_f) - (f_min - 0.001) * pop_size  # Plusing 0.001 to avoid dividing 0
 
+    # compute probabilities for every individual
     rw = [(parent_f[0] - f_min + 0.001) / f_sum]
-    for i in range(1, len(parent_f)):
+    for i in range(1, pop_size):
         rw.append(rw[i - 1] + (parent_f[i] - f_min + 0.001) / f_sum)
 
     select_parent = []
-    for i in range(len(parent)):
+    for i in range(pop_size):
         r = np.random.uniform(0, 1)
         index = 0
         while r > rw[index]:
@@ -110,38 +115,69 @@ def roulette_wheel_selection(parent, parent_f):
     return select_parent
 
 
-def onepoint_crossover(p1, p2, n_variables):
+def tournament_selection(parent, parent_f):
+    """
+    Selection operator. Selects individuals from a population by running several "tournaments" among a few individuals
+    chosen at random. The winner of each tournament, typically the individual with the highest fitness,
+    is selected for the next generation.
+    :param parent: The population
+    :param parent_f: The fitness values of the population
+    :return: The population after the selection operator
+    """
+    select_parent = []
+    for i in range(pop_size):
+        # select five individuals at random
+        pre_select = np.random.choice(pop_size, 5, replace=False)
+        max_f = parent_f[pre_select[0]]
+        index = pre_select[0]
+        for p in pre_select:
+            if parent_f[p] > max_f:
+                index = p
+                max_f = parent_f[p]
+        select_parent.append(parent[index].copy())
+    return select_parent
+
+
+def npoint_crossover(n, x1, x2, crossover_probability):
+    """
+    In-place crossover operator. Combines genetic material from two parent individuals by selecting N crossover points,
+    swapping segments between the parents to produce offspring.
+    :param n: The number of crossover points
+    :param x1: A binary array representing module 1
+    :param x2: A binary array representing module 2
+    """
     if np.random.uniform(0, 1) < crossover_probability:
-        idx = np.random.randint(n_variables)
-        t = p1[idx:]
-        p1[idx:] = p2[idx:]
-        p2[idx:] = t
-
-
-def npoint_crossover(n, p1, p2, n_variables):
-    if (np.random.uniform(0, 1) < crossover_probability):
         idxs = sorted(random.sample(range(n_variables), n))
         for idx in idxs:
-            t = p1[idx:]
-            p1[idx:] = p2[idx:]
-            p2[idx:] = t
+            t = x1[idx:]
+            x1[idx:] = x2[idx:]
+            x2[idx:] = t
 
 
-def uniform_crossover(p1, p2, n_variables):
-    if (np.random.uniform(0, 1) < crossover_probability):
+def uniform_crossover(x1, x2, crossover_probability):
+    """
+    In-place crossover operator. Combines genetic material from two parent individuals by randomly selecting genes
+    from each parent with a fixed probability.
+    :param x1: A binary array representing module 1
+    :param x2: A binary array representing module 2
+    """
+    if np.random.uniform(0, 1) < crossover_probability:
         for i in range(n_variables):
             if np.random.uniform(0, 1) < 0.5:
-                t = p1[i]
-                p1[i] = p2[i]
-                p2[i] = t
+                t = x1[i]
+                x1[i] = x2[i]
+                x2[i] = t
 
 
-
-def genetic_algorithm(func, start_module, generations_left=None):
-    # parameters settings
-    n_variables = len(start_module)
-    mutation_rate = 1 / n_variables
-    mutation_rate_init = mutation_rate
+def genetic_algorithm(func, start_module, tom, generations_left=None):
+    """
+    Executes the genetic algorithm.
+    :param func: The fitness function as defined in evaluate_module.py
+    :param start_module: The module found by WGCNA which we want to optimize
+    :param tom: The topological overlap matrix of the disease network
+    :param generations_left: The duration of the algorithm
+    :return: The best found solution
+    """
 
     if generations_left is None:
         generations_left = n_generations
@@ -150,21 +186,22 @@ def genetic_algorithm(func, start_module, generations_left=None):
     x_opt = None
 
     # construct the initial population
-    parents, parents_f = init_population(func, start_module, mutation_rate_init, n_variables)
+    parents, parents_f = init_population(func, start_module, tom)
 
     while generations_left > 0:
-
-        offspring = roulette_wheel_selection(parents, parents_f)
-
+        # 1. selection
+        offspring = tournament_selection(parents, parents_f)
+        # 2. crossover: higher probability when population gets more diverse
+        crossover_probability = crossover_probability_start * ((n_generations - generations_left)/n_generations*0.6)
         for i in range(0, pop_size - (pop_size % 2), 2):
-            uniform_crossover(offspring[i], offspring[i + 1], n_variables)
-
+            uniform_crossover(offspring[i], offspring[i + 1], crossover_probability)
+        # 3. mutation
         for i in range(pop_size):
-            #mutation(offspring[i], rate=mutation_rate, n_variables=n_variables)
-            guided_mutation(offspring[i], rate=mutation_rate, n_variables=n_variables, tom=evaluate_module.tom)
+            guided_mutation(offspring[i], rate=mutation_rate, tom=tom)
 
         parents = offspring.copy()
         for i in range(pop_size):
+            # calculate the fitness scores of the new population
             parents_f[i] = func(parents[i])
             if parents_f[i] > f_opt:
                 f_opt = parents_f[i]
@@ -176,17 +213,19 @@ def genetic_algorithm(func, start_module, generations_left=None):
     return f_opt, x_opt
 
 
-def main(disease):
+def main():
+    # save variables as local variables
     start_module = evaluate_module.start_module
-    f = evaluate_module.f
+    tom = evaluate_module.tom
 
+    f = evaluate_module.f
     f_opt_result = 0
-    # We run the algorithm 100 independent times.
-    n_runs = 5
+
+    # We run the algorithm n_runs independent times.
     for _ in range(n_runs):
         print("start run", _)
         start_subrun = time.time()
-        f_opt, _ = genetic_algorithm(func=f, start_module=start_module)
+        f_opt, _ = genetic_algorithm(func=f, start_module=start_module, tom=tom)
         f_opt_result += f_opt
         f.reset()
         end_subrun = time.time()
@@ -197,11 +236,31 @@ def main(disease):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--disease',
-                        help="Choose between AD or HD")
+                        help="Choose between AD or HD",
+                        required=True)
+    parser.add_argument('--seed',
+                        default=42,
+                        help="Choose a random seed. Default: 42")
     args, unknown = parser.parse_known_args()
+
+    # initialise data and parameters
     evaluate_module.load_data(args.disease)
+    n_variables = len(evaluate_module.search_space)
+    np.random.seed(args.seed)
+    pop_size = 150
+    n_generations = 250
+    crossover_probability_start = 1/pop_size
+    mutation_rate = 1 / n_variables
+    mutation_rate_init = 2 * mutation_rate
+    n_runs = 5
+
+    print("Starting", n_runs, "runs of the algorithm with n-pop:", pop_size,
+          "n-gen:", n_generations,
+          "p-cross-start:", crossover_probability_start,
+          "p-mut:", mutation_rate,
+          "p-mut-init:", mutation_rate_init)
 
     start = time.time()
-    app.run(main(args.disease))
+    app.run(main())
     end = time.time()
-    print("The program takes %s seconds" % (end - start))
+    print("Done after %s seconds" % (end - start))
