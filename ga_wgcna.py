@@ -5,6 +5,7 @@ import time
 
 import numpy as np
 from absl import app
+from numba import cuda
 
 import evaluate_module
 
@@ -113,6 +114,11 @@ def roulette_wheel_selection(parent, parent_f):
 
         select_parent.append(parent[index].copy())
     return select_parent
+
+@cuda.jit
+def cuda_selection(parent, parent_f, select_parent)
+    i = cuda.grid(1) #1-dimensional thread allocation
+
 
 
 def tournament_selection(parent, parent_f):
@@ -248,11 +254,11 @@ if __name__ == '__main__':
     n_variables = len(evaluate_module.search_space)
     np.random.seed(args.seed)
     pop_size = 150
-    n_generations = 250
+    n_generations = 400
     crossover_probability_start = 1 / pop_size
     mutation_rate = 1 / n_variables
     mutation_rate_init = 2 * mutation_rate
-    n_runs = 5
+    n_runs = 25
 
     print("Starting", n_runs, "runs of the algorithm with n-pop:", pop_size,
           "n-gen:", n_generations,
