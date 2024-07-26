@@ -41,7 +41,7 @@ def guided_mutation(x, rate, tom):
 
         # choice between add/remove depends on the size of the current module
         # select gene to be added; higher tom-similarity to node get higher selection probability
-        if np.random.uniform(0, 1) > (2 * module_size / n_variables):
+        if np.random.uniform(0, 1) > (module_size / n_variables):
             row = tom[selected_gene, :].copy()
             row[module_genes] = 0 # genes already in the module can not be added
             prob_add = row / np.sum(row)

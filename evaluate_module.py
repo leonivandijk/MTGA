@@ -18,7 +18,7 @@ path = "/data/s3035158/data/"
 
 # algorithm parameters
 min_size = 30
-min_gene_overlap = 0
+min_gene_overlap = .5
 deg_threshold = .05
 member_threshold = .5
 
