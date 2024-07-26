@@ -18,7 +18,7 @@ path = "/data/s3035158/data/"
 
 # algorithm parameters
 min_size = 30
-min_gene_overlap = .5
+min_gene_overlap = 0
 deg_threshold = .05
 member_threshold = .5
 
@@ -175,7 +175,7 @@ logger = logger.Analyzer(
     root=os.getcwd(),
     # Store data in the current working directory
     folder_name="results",
-    algorithm_name="GA-HD-saddlebrown",
+    algorithm_name="overlap-tests-0",
     # meta-data for the algorithm used to generate these results.
     algorithm_info="HD-tests-saddlebrown",
     store_positions=True  # store x-variables in the logged files

@@ -43,7 +43,7 @@ def guided_mutation(x, rate, tom):
         # select gene to be added; higher tom-similarity to node get higher selection probability
         if np.random.uniform(0, 1) > (2 * module_size / n_variables):
             row = tom[selected_gene, :].copy()
-            row[selected_gene] = 0
+            row[module_genes] = 0 # genes already in the module can not be added
             prob_add = row / np.sum(row)
             add = np.random.choice(n_variables, p=prob_add)
             x[add] = 1
@@ -248,7 +248,7 @@ if __name__ == '__main__':
     n_variables = len(evaluate_module.search_space)
     np.random.seed(args.seed)
     pop_size = 150
-    n_generations = 250
+    n_generations = 650
     crossover_probability_start = 1 / pop_size
     mutation_rate = 1 / n_variables
     mutation_rate_init = 2 * mutation_rate
