@@ -12,13 +12,14 @@ max_tom = None
 pheno = None
 AD_MODULE = None
 start_module = None
+start_module_size = None
 f = None
 
 path = "/data/s3035158/data/"
 
 # algorithm parameters
 min_size = 30
-min_gene_overlap = .5
+min_gene_overlap = 0
 deg_threshold = .05
 member_threshold = .5
 
@@ -78,7 +79,7 @@ def load_data(disease):
     :param disease: The disease for which we want to load data. Choose either "AD" or "HD"
     """
     print("loading data of", disease, "network")
-    global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module, f
+    global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module, start_module_size, f
 
     if disease == "AD":
         # ad data
@@ -108,6 +109,7 @@ def load_data(disease):
     for i in AD_MODULE:
         index = np.where(search_space == i)
         start_module[index] = 1
+    start_module_size = sum(start_module)
     print("loading done")
 
     # Call get_problem to instantiate a version of this problem
@@ -131,7 +133,7 @@ def is_valid(x):
         return False
     if sum(x) < min_size:
         return False
-    if 1 - (sum(start_module) - sum(x[start_module.astype(bool)])) / sum(start_module) < min_gene_overlap:
+    if 1 - (start_module_size - sum(x[start_module.astype(bool)])) / start_module_size < min_gene_overlap:
         return False
     return True
 
@@ -175,7 +177,7 @@ logger = logger.Analyzer(
     root=os.getcwd(),
     # Store data in the current working directory
     folder_name="results",
-    algorithm_name="overlap-tests-0",
+    algorithm_name="overlap-tests",
     # meta-data for the algorithm used to generate these results.
     algorithm_info="HD-tests-saddlebrown",
     store_positions=True  # store x-variables in the logged files

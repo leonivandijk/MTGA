@@ -182,8 +182,8 @@ def genetic_algorithm(func, start_module, tom, generations_left=None):
     if generations_left is None:
         generations_left = n_generations
 
-    f_opt = sys.float_info.min
-    x_opt = None
+    x_opt = start_module
+    f_opt = func(start_module)
 
     # construct the initial population
     parents, parents_f = init_population(func, start_module, tom)
@@ -192,7 +192,8 @@ def genetic_algorithm(func, start_module, tom, generations_left=None):
         # 1. selection
         offspring = tournament_selection(parents, parents_f)
         # 2. crossover: higher probability when population gets more diverse
-        crossover_probability = crossover_probability_start * ((n_generations - generations_left) / n_generations * 0.6)
+        crossover_probability = (((n_generations - generations_left) / n_generations) * (
+                crossover_probability_max - crossover_probability_min)) + crossover_probability_min
         for i in range(0, pop_size - (pop_size % 2), 2):
             uniform_crossover(offspring[i], offspring[i + 1], crossover_probability)
         # 3. mutation
@@ -247,18 +248,21 @@ if __name__ == '__main__':
     evaluate_module.load_data(args.disease)
     n_variables = len(evaluate_module.search_space)
     np.random.seed(args.seed)
-    pop_size = 150
-    n_generations = 650
-    crossover_probability_start = 1 / pop_size
+    pop_size = 250
+    n_generations = 800
+    crossover_probability_max = 0.8
+    crossover_probability_min = 0.2
     mutation_rate = 1 / n_variables
     mutation_rate_init = 2 * mutation_rate
     n_runs = 5
 
     print("Starting", n_runs, "runs of the algorithm with n-pop:", pop_size,
           "n-gen:", n_generations,
-          "p-cross-start:", crossover_probability_start,
+          "p-cross-min:", crossover_probability_min,
+          "p-cross-max:", crossover_probability_max,
           "p-mut:", mutation_rate,
-          "p-mut-init:", mutation_rate_init)
+          "p-mut-init:", mutation_rate_init,
+          "min-overlap:", evaluate_module.min_gene_overlap)
 
     start = time.time()
     app.run(main())
