@@ -248,8 +248,8 @@ if __name__ == '__main__':
     evaluate_module.load_data(args.disease)
     n_variables = len(evaluate_module.search_space)
     np.random.seed(args.seed)
-    pop_size = 250
-    n_generations = 800
+    pop_size = 150
+    n_generations = 600
     crossover_probability_max = 0.8
     crossover_probability_min = 0.2
     mutation_rate = 1 / n_variables
