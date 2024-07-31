@@ -88,6 +88,19 @@ def init_population(func, start_module, tom, guide=False):
     return parents, parents_f
 
 
+def randomIP(func, start_module):
+    parents = []
+    parents_f = []
+    while len(parents) != pop_size:
+        parent = np.zeros(shape=start_module.shape, dtype=int)
+        module_genes = np.random.randint(low=0, high=len(parent), size=evaluate_module.start_module_size)
+        parent[module_genes] = 1
+        if evaluate_module.is_valid(parent):
+            parents.append(parent)
+            parents_f.append(func(parent))
+    return parents, parents_f
+
+
 def roulette_wheel_selection(parent, parent_f):
     """
     Selection operator. The probability of selection is proportional to each individual's fitness, allowing higher
@@ -186,7 +199,8 @@ def genetic_algorithm(func, start_module, tom, generations_left=None):
     f_opt = func(start_module)
 
     # construct the initial population
-    parents, parents_f = init_population(func, start_module, tom)
+    #parents, parents_f = init_population(func, start_module, tom)
+    parents, parents_f = randomIP(func, start_module)
 
     while generations_left > 0:
         # 1. selection
@@ -199,6 +213,7 @@ def genetic_algorithm(func, start_module, tom, generations_left=None):
         # 3. mutation
         for i in range(pop_size):
             guided_mutation(offspring[i], rate=mutation_rate, tom=tom)
+            #mutation(offspring[i], rate=mutation_rate)
 
         parents = offspring.copy()
         for i in range(pop_size):
@@ -249,12 +264,12 @@ if __name__ == '__main__':
     n_variables = len(evaluate_module.search_space)
     np.random.seed(args.seed)
     pop_size = 150
-    n_generations = 600
-    crossover_probability_max = 0.8
-    crossover_probability_min = 0.2
+    n_generations = 800
+    crossover_probability_max = 0.7
+    crossover_probability_min = 0.7
     mutation_rate = 1 / n_variables
-    mutation_rate_init = 2 * mutation_rate
-    n_runs = 5
+    mutation_rate_init = 5 * mutation_rate
+    n_runs = 3
 
     print("Starting", n_runs, "runs of the algorithm with n-pop:", pop_size,
           "n-gen:", n_generations,
