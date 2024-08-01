@@ -24,7 +24,7 @@ deg_threshold = .05
 member_threshold = .5
 
 # initial solution
-AD_MODULE = np.array(pd.read_table(path + "saddlebrown.txt", dtype=str))
+AD_MODULE = np.array(pd.read_table(path + "antiquewhite_no_version.txt", dtype=str))
 
 
 def computeGeneModuleMembership():
