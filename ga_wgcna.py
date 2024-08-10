@@ -199,8 +199,8 @@ def genetic_algorithm(func, start_module, tom, generations_left=None):
     f_opt = func(start_module)
 
     # construct the initial population
-    #parents, parents_f = init_population(func, start_module, tom)
-    parents, parents_f = randomIP(func, start_module)
+    parents, parents_f = init_population(func, start_module, tom)
+    #parents, parents_f = randomIP(func, start_module)
 
     while generations_left > 0:
         # 1. selection
@@ -265,11 +265,11 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     pop_size = 150
     n_generations = 800
-    crossover_probability_max = 0.7
-    crossover_probability_min = 0.7
+    crossover_probability_min = 0.2
+    crossover_probability_max = 0.8
     mutation_rate = 1 / n_variables
-    mutation_rate_init = 5 * mutation_rate
-    n_runs = 3
+    mutation_rate_init = 5 / n_variables
+    n_runs = 100
 
     print("Starting", n_runs, "runs of the algorithm with n-pop:", pop_size,
           "n-gen:", n_generations,

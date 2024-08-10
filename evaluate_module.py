@@ -16,16 +16,16 @@ start_module_size = None
 f = None
 
 path = "/data/s3035158/data/"
+#path = "/Users/leonivandijk/Desktop/thesis/pyfiles/MCGA/data/"
 
 # algorithm parameters
 min_size = 30
-min_gene_overlap = 0
+min_gene_overlap = 0.5
 deg_threshold = .05
-member_threshold = .5
+member_threshold = 0.5
 
 # initial solution
-AD_MODULE = np.array(pd.read_table(path + "antiquewhite_no_version.txt", dtype=str))
-
+AD_MODULE = np.array(pd.read_table(path + "saddlebrown.txt", dtype=str, header=None))
 
 def computeGeneModuleMembership():
     """
@@ -80,6 +80,8 @@ def load_data(disease):
     """
     print("loading data of", disease, "network")
     global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module, start_module_size, f
+
+    print('size of start module:', len(AD_MODULE))
 
     if disease == "AD":
         # ad data
