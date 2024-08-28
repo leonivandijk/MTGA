@@ -6,6 +6,7 @@ It includes (1) R code to preprocess datasets of two diseases and to construct g
 after which it is optimized to represent how the process manifests in the other disease, (3) (parts of) the data that was used, (4) python code used to analyze the results.
 
 This algorithm can be used to identify genes that are highly related to another set of genes given as input, in the context of their co-expression and link to the disease. 
+It can easily be run for any set of input genes by modifying the "saddlebrown.txt" file with the ENSEMBL identifiers of the genes of interest.
 
 ## Table of Contents
 - [Requirements](#requirements)
@@ -17,16 +18,16 @@ This algorithm can be used to identify genes that are highly related to another 
 
 ## Requirements
 1. data processing (R code)
-   - required libraries
-     # Install BiocManager if not already installed
+   # required libraries
+   Install BiocManager if not already installed
     if (!requireNamespace("BiocManager", quietly = TRUE)) {
       install.packages("BiocManager")
     }
 
-    # Install Bioconductor packages
+    Install Bioconductor packages
     BiocManager::install(c("DESeq2", "apeglm", "WGCNA", "biomaRt"))
 
-    # Install CRAN packages
+    Install CRAN packages
     install.packages(c("pheatmap", "ggrepel", "gridExtra", "ggfortify", 
                    "dplyr", "limma", "flashClust", "ggplot2"))
    - instructions
