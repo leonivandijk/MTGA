@@ -36,11 +36,14 @@ It can easily be run for any set of input genes by modifying the "saddlebrown.tx
      - networks_and_clustering.R: change "soft_power" to 8 to reproduce the co-expression networks for the AD data, use power 10 to reproduce the networks for the HD data. Don't run lines 41 and 42 if you are
        running for AD.
 
-2. algorithm execution (python code)
-   - required libraries
+### 2. algorithm execution (python code)
+   * required libraries
+     
      pip install numpy absl-py pandas ioh
-   - instructions (for reproducing results for module transfer in HD)
-     1. download the required data (see folder: data) and both python files "evaluate_module.py" and "ga_optimize_module.py"
-     2. open the "evaluate_module.py" and change the path to the folder where you saved the data.
-     3. run the script from terminal via "python3 ga_optimize_module.py --disease="HD""
+     
+   * instructions (for reproducing results for module transfer in HD)
+     1. download the required data (see project folder: data) and both python files "evaluate_module.py" and "ga_optimize_module.py"
+     2. open "evaluate_module.py" and change the path to the folder where you saved the data.
+     3. open "ga_optimize_module.py" and specify the numbers of runs you want (repetitions of the GA, line 255)
+     4. run the script from terminal via "python3 ga_optimize_module.py --disease="HD""
 
