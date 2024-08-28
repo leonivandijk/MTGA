@@ -46,4 +46,19 @@ It can easily be run for any set of input genes by modifying the "saddlebrown.tx
      2. open "evaluate_module.py" and change the path to the folder where you saved the data.
      3. open "ga_optimize_module.py" and specify the numbers of runs you want (repetitions of the GA, line 255)
      4. run the script from terminal via "python3 ga_optimize_module.py --disease="HD""
+    
+### 3. result analysis
+  * required libraries
+
+    pip install matplotlib seaborn
+    uses functions from the evaluate_module.py script
+
+* instructions
+  1. download the jupyter notebook to analyse results from the GA: "analyse_results.ipynb"
+  2. in the second cell, point to the right folder where the data is saved.
+  3. see if the GA created a folder named "results". This folder should contain a file with a name like "/IOHprofiler_f10005_module_fitness.json".
+  4. make sure the "read_ioh_output(folder)" method includes the right path to this results folder.
+  5. Running the cell under the markout cell saying "RUNNING THE NEXT CELL WILL GIVE YOU THE OPTIMIZED GENE SET:", will give you the final result. All other cells in this notebook can be used for further analysis.
+
+  
 
