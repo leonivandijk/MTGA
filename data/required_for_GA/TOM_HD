@@ -1,0 +1,5 @@
+This file was too large to upload.
+It can be obtained via two ways:
+- run the "networks_and_clustering.R" script using the "EXPRMAT_HD.csv" dataset until creation of the topological overlap matrix and save results.
+- if you have access, go to this folder in the LUMC sharepoint: https://lumconline-my.sharepoint.com/:f:/r/personal/a_l_c_van_dijk_lumc_nl/Documents/thesis_leoni/Data?csf=1&web=1&e=hQq3ks, 
+here all the data is stored in a zip file that is needed to run the algorithm for HD.
