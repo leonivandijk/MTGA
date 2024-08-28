@@ -5,7 +5,7 @@ This project is part of a masters thesis named "Transferring knowledge from comm
 It includes (1) R code to preprocess datasets of two diseases and to construct gene co-expression networks, (2) python code to transfer knowledge about a biological process in one disease to the other disease,
 after which it is optimized to represent how the process manifests in the other disease, (3) python code used to analyze the results.
 
-This algorithm can be used to identify genes that are highly related to another set of genes given as input, in the context of their co-expression and link to the disease. 
+The algorithm can be used to identify genes that are highly related to another set of genes given as input, in the context of their co-expression and link to the disease. 
 It can easily be run for any set of input genes by modifying the "saddlebrown.txt" file with the ENSEMBL identifiers of the genes of interest.
 
 ## Table of Contents
