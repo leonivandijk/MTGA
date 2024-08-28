@@ -32,6 +32,15 @@ This algorithm can be used to identify genes that are highly related to another 
    - instructions
      - preprocessing_alzheimer.R: uses data from Synapse (https://www.synapse.org/) for which you need to request permission.
      - preprocessing_huntington.R: uses the genes we have for alzheimer after preprocessing during the mapping of gene identifiers. As these datasets can't be shared, I uploaded a dataset called
-        "background_genelist.txt" that can be used instead. Make sure to change the path from "genes_ad" to this file.
+        "background.txt" that can be used instead. Make sure to change the path from "genes_ad" to this file.
      - networks_and_clustering.R: change "soft_power" to 8 to reproduce the co-expression networks for the AD data, use power 10 to reproduce the networks for the HD data. Don't run lines 41 and 42 if you are
        running for AD.
+
+2. algorithm execution (python code)
+   - required libraries
+     pip install numpy absl-py pandas ioh
+   - instructions (for reproducing results for module transfer in HD)
+     1. download the required data (see folder: data) and both python files "evaluate_module.py" and "ga_optimize_module.py"
+     2. open the "evaluate_module.py" and change the path to the folder where you saved the data.
+     3. run the script from terminal via "python3 ga_optimize_module.py --disease="HD""
+
