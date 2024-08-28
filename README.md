@@ -18,7 +18,7 @@ It can easily be run for any set of input genes by modifying the "saddlebrown.tx
 
 ## Requirements
 ### 1. data processing (R code)
-   required libraries
+   * required libraries
    
     Install BiocManager if not already installed
     if (!requireNamespace("BiocManager", quietly = TRUE)) {install.packages("BiocManager")}
@@ -29,7 +29,7 @@ It can easily be run for any set of input genes by modifying the "saddlebrown.tx
     Install CRAN packages
     install.packages(c("pheatmap", "ggrepel", "gridExtra", "ggfortify", 
                    "dplyr", "limma", "flashClust", "ggplot2"))
-   - instructions
+* instructions
      - preprocessing_alzheimer.R: uses data from Synapse (https://www.synapse.org/) for which you need to request permission.
      - preprocessing_huntington.R: uses the genes we have for alzheimer after preprocessing during the mapping of gene identifiers. As these datasets can't be shared, I uploaded a dataset called
         "background.txt" that can be used instead. Make sure to change the path from "genes_ad" to this file.
