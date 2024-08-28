@@ -17,8 +17,8 @@ It can easily be run for any set of input genes by modifying the "saddlebrown.tx
 - [Contact](#contact)
 
 ## Requirements
-1. data processing (R code)
-   # required libraries
+###1. data processing (R code)
+   required libraries
    Install BiocManager if not already installed
     if (!requireNamespace("BiocManager", quietly = TRUE)) {
       install.packages("BiocManager")
