@@ -58,7 +58,7 @@ It can easily be run for any set of input genes by modifying the "saddlebrown.tx
   2. in the second cell, point to the right folder where the data is saved.
   3. see if the GA created a folder named "results". This folder should contain a file with a name like "/IOHprofiler_f10005_module_fitness.json".
   4. make sure the "read_ioh_output(folder)" method includes the right path to this results folder.
-  5. Running the cell under the markout cell saying "RUNNING THE NEXT CELL WILL GIVE YOU THE OPTIMIZED GENE SET:", will give you the final result. All other cells in this notebook can be used for further analysis.
+  5. Running the cell under the markout cell saying "RUNNING THE NEXT CELL WILL GIVE YOU THE OPTIMIZED GENE SET:", will give you the final result. (the other cells show examples of how data analysis can be used to further evaluate the results)
 
   
 
