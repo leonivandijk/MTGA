@@ -12,19 +12,20 @@ max_tom = None
 pheno = None
 AD_MODULE = None
 start_module = None
+start_module_size = None
 f = None
 
-path = "/Users/leonivandijk/Desktop/thesis/pyfiles/MCGA"
+#path = "/data/s3035158/data/"
+path = "/Users/leonivandijk/Desktop/thesis/pyfiles/MCGA/data/"
 
 # algorithm parameters
 min_size = 30
-min_gene_overlap = .5
+min_gene_overlap = 0.5
 deg_threshold = .05
-member_threshold = .5
+member_threshold = 0.5
 
 # initial solution
-AD_MODULE = np.array(pd.read_table(path + "/data/saddlebrown.txt", dtype=str))
-
+AD_MODULE = np.array(pd.read_table(path + "saddlebrown.txt", dtype=str, header=None))
 
 def computeGeneModuleMembership():
     """
@@ -78,23 +79,25 @@ def load_data(disease):
     :param disease: The disease for which we want to load data. Choose either "AD" or "HD"
     """
     print("loading data of", disease, "network")
-    global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module, f
+    global search_space, expr_mat, tom, max_tom, pheno, AD_MODULE, start_module, start_module_size, f
+
+    print('size of start module:', len(AD_MODULE))
 
     if disease == "AD":
         # ad data
-        expr_mat = pd.read_csv(path + "/data/EXPRMAT_AD.csv", delimiter=';')
-        tom = pd.read_csv(path + "/data/TOM_AD.csv", delimiter=';')
-        pheno = np.loadtxt(path + "/data/PHENO_AD.csv", delimiter=';', usecols=1, skiprows=1, dtype=int)
+        expr_mat = pd.read_csv(path + "EXPRMAT_AD.csv", delimiter=';')
+        tom = pd.read_csv(path + "TOM_AD.csv", delimiter=';')
+        pheno = np.loadtxt(path + "PHENO_AD.csv", delimiter=';', usecols=1, skiprows=1, dtype=int)
         # extra results
-        degs = pd.read_csv(path + "/data/results_deseq2_15385.csv", delimiter='\t', index_col=0)
+        degs = pd.read_csv(path + "results_deseq2_15385.csv", delimiter='\t', index_col=0)
 
     elif disease == "HD":
         # hd data
-        expr_mat = pd.read_csv(path + "/data/EXPRMAT_HD.csv", delimiter=';')
-        tom = pd.read_csv(path + "/data/TOM_HD.csv", delimiter=';')
-        pheno = np.loadtxt(path + "/data/PHENO_HD.csv", delimiter='\t', usecols=1, skiprows=1, dtype=int)
+        expr_mat = pd.read_csv(path + "EXPRMAT_HD.csv", delimiter=';')
+        tom = pd.read_csv(path + "TOM_HD.csv", delimiter=';')
+        pheno = np.loadtxt(path + "PHENO_HD.csv", delimiter='\t', usecols=1, skiprows=1, dtype=int)
         # extra results
-        degs = pd.read_csv(path + "/data/result_deseq2_15984.csv", delimiter='\t', index_col=0)
+        degs = pd.read_csv(path + "result_deseq2_15984.csv", delimiter='\t', index_col=0)
     else:
         raise ValueError("Unsupported disease code: " + disease)
 
@@ -108,6 +111,7 @@ def load_data(disease):
     for i in AD_MODULE:
         index = np.where(search_space == i)
         start_module[index] = 1
+    start_module_size = sum(start_module)
     print("loading done")
 
     # Call get_problem to instantiate a version of this problem
@@ -131,7 +135,7 @@ def is_valid(x):
         return False
     if sum(x) < min_size:
         return False
-    if 1 - (sum(start_module) - sum(x[start_module.astype(bool)])) / sum(start_module) < min_gene_overlap:
+    if 1 - (start_module_size - sum(x[start_module.astype(bool)])) / start_module_size < min_gene_overlap:
         return False
     return True
 
@@ -159,11 +163,7 @@ def fitness(x):
     # scale max number of possible edges by upper bound on strength of a connection
     possible_edges = (module_size * (module_size - 1) / 2) * max_tom
 
-    print("correlation:", signal)
-    print("connectivity:", (edges / possible_edges))
-    print("size:", module_size)
-
-    return (signal * (edges / possible_edges))
+    return signal, (edges / possible_edges), signal * (edges / possible_edges)
 
 
 problem.wrap_integer_problem(fitness,
@@ -175,7 +175,7 @@ logger = logger.Analyzer(
     root=os.getcwd(),
     # Store data in the current working directory
     folder_name="results",
-    algorithm_name="GA-HD-saddlebrown",
+    algorithm_name="overlap-tests",
     # meta-data for the algorithm used to generate these results.
     algorithm_info="HD-tests-saddlebrown",
     store_positions=True  # store x-variables in the logged files
