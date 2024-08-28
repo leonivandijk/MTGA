@@ -9,14 +9,10 @@ This algorithm can be used to identify genes that are highly related to another 
 It can easily be run for any set of input genes by modifying the "saddlebrown.txt" file with the ENSEMBL identifiers of the genes of interest.
 
 ## Table of Contents
-- [Requirements](#requirements)
-- [Usage](#usage)
-- [Features](#features)
-- [Contributing](#contributing)
-- [License](#license)
+- [Requirements and instructions](#requirements_and_instructions)
 - [Contact](#contact)
 
-## Requirements
+## Requirements and instructions
 ### 1. data processing (R code)
    * required libraries
    
@@ -60,5 +56,7 @@ It can easily be run for any set of input genes by modifying the "saddlebrown.tx
   4. make sure the "read_ioh_output(folder)" method includes the right path to this results folder.
   5. Running the cell under the markout cell saying "RUNNING THE NEXT CELL WILL GIVE YOU THE OPTIMIZED GENE SET:", will give you the final result. (the other cells show examples of how data analysis can be used to further evaluate the results)
 
-  
+
+## Contact
+E-mail: leonidijk@gmail.com
 
